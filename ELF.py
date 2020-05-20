@@ -59,6 +59,32 @@ class ELF:
         for i in range(selph.Elf64_Ehdr.e_phnum):
             buff += selph.Elf64_Phdr[i].save()
 
+        # it may have some padding between last phdr and data section
+        just_after_last_phdr = selph.Elf64_Ehdr.e_phoff + selph.Elf64_Ehdr.e_phnum * selph.Elf64_Ehdr.e_phentsize
+
+
+        # data_addr = selph.Elf64_Shdr[1].sh_offset # 0 is often (always ?) nulltype so using 1 which point to data first byte.
+        # sometimes sections are not in the right order of offset
+
+        # Section Headers:
+        # [Nr] Name                 Type         Addr             Off      Size     ES Flags Lk Inf Al
+        # [ 0]                      NULL         0000000000000000 00000000 00000000  0        0   0  0
+        # [ 1] .text                PROGBITS     0000000000401100 00001100 00000665  0 AX     0   0 16
+        # [ 2] .interp              PROGBITS     00000000004002a8 000002a8 0000001c  0 A      0   0  1
+        # [ 3] .note.gnu.build-id   NOTE         00000000004002c4 000002c4 00000024  0 A      0   0  4
+        # [ 4] .note.ABI-tag        NOTE         00000000004002e8 000002e8 00000020  0 A      0   0  4
+        # [ 5] .gnu.hash            GNU_HASH     0000000000400308 00000308 0000001c  0 A      6   0  8
+        # [ 6] .dynsym              DYNSYM       0000000000400328 00000328 000001b0 24 A      7   1  8
+        # [ 7] .dynstr              STRTAB       00000000004004d8 000004d8 00000152  0 A      0   0  1
+        # [ 8] .gnu.version         GNU_versym   000000000040062a 0000062a 00000024  2 A      6   0  2
+        # [ 9] .gnu.version_r       GNU_verneed  0000000000400650 00000650 00000060  0 A      7   2  8
+
+        sorted_section_by_offset = sorted([ sh for sh in selph.Elf64_Shdr ], key=lambda section: section.sh_offset)
+        data_addr = sorted_section_by_offset[1].sh_offset
+
+        buff += b"\x00" * (data_addr - just_after_last_phdr)
+        # print(hex(len(buff)))
+
         # adding all data described by sections to the ELF
         for i in range(selph.Elf64_Ehdr.e_shnum):
 
