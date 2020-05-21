@@ -1,6 +1,7 @@
 import ctypes as c
 from collections import OrderedDict
 from struct import unpack_from, pack
+from binascii import hexlify
 
 
 def typemap(cls):
@@ -58,17 +59,16 @@ class orginal_struct:
 
         #  getting data described by this section headers
         if isinstance(cls, Elf64_Shdr_ST):
-            if cls.sh_type != 0x00:
+            if cls.sh_type not in [0x00, 0x08]: # they do not have space on file only at runtime
 
-                # print(hex(next_sh), hex(cls.sh_offset))
+                # size = next_sh - cls.sh_offset
+                size = cls.sh_size
 
-                size = next_sh - cls.sh_offset
                 setattr(cls, "data", ELF_obj.elf_data[cls.sh_offset:cls.sh_offset + size].rstrip(b"\x00"))
                 setattr(cls, "size_padded", size)
             else:
                 setattr(cls, "data", b"")
                 setattr(cls, "size_padded", 0)
-
 
 
     def __repr__(cls):
