@@ -175,7 +175,7 @@ class Elf64_Shdr_ST(c.Structure, orginal_struct):
     """
     struct_description = "ELF Sections header struct"
 
-    # typedef structsh_name
+    # typedef struct 
     # {
     #   Elf64_Word    sh_name;                /* Section name (string tbl index) */ 4
     #   Elf64_Word    sh_type;                /* Section type */ 4
