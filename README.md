@@ -42,3 +42,6 @@ typedef struct
   Elf64_Half    e_shstrndx;             /* Section header string table index */
 } Elf64_Ehdr;
 ```
+
+
+![img/poc.gif](img/poc.gif)
