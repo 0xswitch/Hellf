@@ -23,7 +23,7 @@ e.Elf64_Ehdr.e_entry = e.get_section_by_name(".text").sh_addr
 e.save("/tmp/not_really_ls_anymore")
 ```
 
-[img/poc.gif](img/twitter.gif)
+![img/poc.gif](img/twitter.gif)
 
 # Use cases
 
