@@ -1,4 +1,6 @@
 #!/usr/bin/python3
+from pwn import hexdump
+
 from Hellf.lib.elf_structs import *
 
 from binascii import hexlify
@@ -23,6 +25,16 @@ class ELF:
         selph.Elf64_Phdr = Elf64_Ehdr_LST(selph)
         selph.Elf64_Shdr = Elf64_Shdr_LST(selph)
 
+
+    def get_section_number(selph, name):
+        i = 0
+        for sh in selph.Elf64_Shdr:
+            sh_name = selph.Elf64_Shdr[-1].data[sh.sh_name:].split(b"\x00")[0].decode("utf-8") # last sh describe .shstrtab which contains sections names
+            if sh_name == name:
+                return i
+            else:
+                i += 1        
+
     def get_section_by_name(selph, name):
         # print(selph.Elf64_Shdr[-1].data)
         for sh in selph.Elf64_Shdr:
@@ -42,6 +54,8 @@ class ELF:
         padding_size = custom_section.sh_addralign - (custom_section.sh_size % custom_section.sh_addralign)
         custom_section.data += b"\x00" * padding_size
 
+        # print(padding_size)
+
         # update nb of Shdr entry of Shdrt in Ehdr.e_shnum
         selph.Elf64_Ehdr.e_shnum += 1
         # adding the custom section to the list
@@ -49,6 +63,9 @@ class ELF:
         # saving the binary will add the section after every other sections, and so the Shdrt location will
         # be moved of the size of the data from the new section.
         selph.Elf64_Ehdr.e_shoff += custom_section.sh_size + padding_size
+
+        # we added padding for alignment so we must include it in section size.
+        custom_section.sh_size += padding_size
 
 
     def save(selph, output_location):
@@ -88,7 +105,6 @@ class ELF:
         data_addr = sorted_section_by_offset[1].sh_offset
 
         buff += b"\x00" * (data_addr - just_after_last_phdr)
-        # print(hex(len(buff)))
 
         # adding all data described by sections to the ELF
 
@@ -102,6 +118,7 @@ class ELF:
             # we need to keep the initial size else the offset for the next sh would change
 
             # custom section haven't got padded size attribute as sh_size is the real size so skipping this check
+
             if hasattr(actual_sh[i], "size_padded"):
 
                 if len(actual_sh[i].data) != actual_sh[i].size_padded:
@@ -109,13 +126,17 @@ class ELF:
 
             buff += actual_sh[i].data
 
-            # sometime there is padding between section, so just calculating the differnce between two section and adding \x00
+            # sometime there is padding between section, so just calculating the difference between two section and adding \x00
             if actual_sh[i].sh_type not in [0x00, 0x08]: # these type of section do not have space on file only at runtime
-                if i != selph.Elf64_Ehdr.e_shnum - 1:
-                    buff += b"\x00" * (actual_sh[i+1].sh_offset - (actual_sh[i].sh_offset + actual_sh[i].sh_size))
-                else:
-                    buff += b"\x00" * (selph.Elf64_Ehdr.e_shoff - (actual_sh[i].sh_offset + actual_sh[i].sh_size))
 
+                if i != selph.Elf64_Ehdr.e_shnum - 1:
+                    pad_size =  (actual_sh[i+1].sh_offset - (actual_sh[i].sh_offset + actual_sh[i].sh_size))
+                    # print(pad_size)
+                    buff += b"\x00" * pad_size
+                else:
+                    pad_size = (selph.Elf64_Ehdr.e_shoff - (actual_sh[i].sh_offset + actual_sh[i].sh_size))
+                    # print(pad_size)
+                    buff += b"\x00" * pad_size
 
         # adding each sh to the ELF
         for i in range(selph.Elf64_Ehdr.e_shnum):

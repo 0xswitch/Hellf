@@ -64,7 +64,7 @@ class orginal_struct:
                 # size = next_sh - cls.sh_offset
                 size = cls.sh_size
 
-                setattr(cls, "data", ELF_obj.elf_data[cls.sh_offset:cls.sh_offset + size].rstrip(b"\x00"))
+                setattr(cls, "data", ELF_obj.elf_data[cls.sh_offset:cls.sh_offset + size])
                 setattr(cls, "size_padded", size)
             else:
                 setattr(cls, "data", b"")
