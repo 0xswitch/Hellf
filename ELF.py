@@ -20,6 +20,8 @@ class ELF:
             elf_hdl = open(binary, "rb")
             selph.elf_data = elf_hdl.read()
 
+        # check architecture
+
         if selph.x86_or_x64() == X64:
             selph.archi_bits = X64
             selph.Elf64_Ehdr = Elf64_Ehdr_ST(selph)
@@ -53,6 +55,12 @@ class ELF:
 
     def x86_or_x64(selph):
         return unpack("B", selph.elf_data[4:5])[0]
+
+    @property
+    def pie(self):
+        return True if self.ElfXX_Ehdr.e_type == ET_DYN else False
+
+
 
     def get_section_number(selph, name):
         i = 0
@@ -154,11 +162,23 @@ class ELF:
             buff += actual_sh[i].data
 
             # sometime there is padding between section, so just calculating the difference between two section and adding \x00
-            if actual_sh[i].sh_type not in [0x00, 0x08]: # these type of section do not have space on file only at runtime
+            if actual_sh[i].sh_type not in [0x00, 0x08]: # these type of section do not have space on file, only at runtime
+
 
                 if i != selph.ElfXX_Ehdr.e_shnum - 1:
-                    pad_size =  (actual_sh[i+1].sh_offset - (actual_sh[i].sh_offset + actual_sh[i].sh_size))
-                    # print(pad_size)
+
+                    # if a NOBITS section is between 2 PROGBITS the padding can be invald
+
+                    j = 1
+
+                    next_section = actual_sh[i+j]
+
+                    # so we are getting the next section which actually hold data (skipping NOBITS one)
+                    while next_section.sh_type in [0x00, 0x08]:
+                        j += 1
+                        next_section = actual_sh[i+j]
+
+                    pad_size =  (next_section.sh_offset - (actual_sh[i].sh_offset + actual_sh[i].sh_size))
                     buff += b"\x00" * pad_size
                 else:
                     pad_size = (selph.ElfXX_Ehdr.e_shoff - (actual_sh[i].sh_offset + actual_sh[i].sh_size))
