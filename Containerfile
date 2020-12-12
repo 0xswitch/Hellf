@@ -1,8 +1,9 @@
 FROM alpine:3.12.2
 
-LABEL Hellf latest
-ARG HELLF_VERSION=master
+LABEL hellf latest
+ARG HELLF_VERSION=pip-it
 ENV HELLF_VERSION ${HELLF_VERSION}
+RUN echo "Installing Hellf from $HELLF_VERSION"
 VOLUME ["/mnt/tmp"]
 RUN apk update && apk add python3 git
 RUN python3 -m ensurepip
